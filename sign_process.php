@@ -19,7 +19,7 @@ include 'dbconnect.php';
           $_SESSION['id']=$row[0];
           $_SESSION['email_id']=$row[3];
           $_SESSION['status']="login";
-          header("Location: gui.php?msg= welcome  $row[1] ");
+          header("Location: gui1.php?msg");
           
       }
       else 

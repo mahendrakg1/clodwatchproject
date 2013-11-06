@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<?php
+session_start();
+?>
 
 <html>
     <head>
@@ -8,14 +11,15 @@
         <!--Load the AJAX API-->
         <script type="text/javascript" src="https://www.google.com/jsapi"></script>
         <script type="text/javascript">
-            function loadgraph(v, statics, interval, timerange)
+            function loadgraph(v, statics, interval, timerange, instance,region)
             {
                 //load the google api
                 google.load("visualization", "1", {packages: ["corechart"], callback: drawChart});
                 function drawChart()
                 {
-                    var dataString = {'parameter': v, 'static': statics, 'interval': interval, 'timerange': timerange}
+                    var dataString = {'parameter': v, 'static': statics, 'interval': interval, 'timerange': timerange, 'instance': instance,'region':region}
                     //use ajax call to get the data srom the server
+                    alert(datastring);
                     var jsonData = $.ajax({
                         type: "POST",
                         url: "getData.php",
@@ -33,32 +37,32 @@
                             break;
                         case 2:
                             tit = "DISKREAD BYTES CHART";
-                            xaxis = "cpu utilization in percent";
+                            xaxis = "disk read in Bytes";
                             yaxis = "time values";
                             break;
                         case 3:
                             tit = "DISKREAD OPERATIONS CHART";
-                            xaxis = "cpu utilization in percent";
+                            xaxis = "diskread operation in Bytes";
                             yaxis = "time values";
                             break;
                         case 4:
                             tit = "DISKWRITE BYTE CHART";
-                            xaxis = "cpu utilization in percent";
+                            xaxis = "diskwrite operation in Bytes";
                             yaxis = "time values";
                             break;
                         case 5:
                             tit = "NETWORKIN BYTE CHART";
-                            xaxis = "cpu utilization in percent";
+                            xaxis = "networkin in Bytes";
                             yaxis = "time values";
                             break;
                         case 6:
                             tit = "NETWORKOUT BYTE CHART";
-                            xaxis = "cpu utilization in percent";
+                            xaxis = "networkout in Bytes";
                             yaxis = "time values";
                             break;
                         case 7:
                             tit = "STATUSCHECKFAILED CHART";
-                            xaxis = "cpu utilization in percent";
+                            xaxis = "statuscheckfailed ";
                             yaxis = "time values";
                             break;
                         default:
@@ -71,6 +75,7 @@
                         'hAxis': {title: yaxis},
                     };
                     //load the json data to the graph
+                   
                     var data = new google.visualization.DataTable(jsonData);
                     //draw the chart
                     var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
@@ -79,6 +84,31 @@
 
                 }
             }
+            function getinstance(region)
+            {
+                var dataString = {'region': region}
+                var jsonData = $.ajax({
+                    type: "POST",
+                    url: "runninginstance.php",
+                    data: dataString,
+                    dataType: "json",
+                    async: false
+                }).responseText;
+
+                var objs = JSON.parse(jsonData);
+
+
+
+                var select = document.getElementById("select6");
+                for (var i = 0; i < objs.length; i++) {
+                    var opt = objs[i];
+                    var el = document.createElement("option");
+                    el.textContent = opt;
+                    el.value = opt;
+                    select.appendChild(el);
+                }
+            }
+
             $(document).ready(function()
             {
                 //set all the properties when to display or not
@@ -86,7 +116,34 @@
                 $("#period").hide();
                 $("#loading").hide();
                 $("#time").hide();
+                $("#select6").hide();
+                $("#select5").val('selected');
                 var remove;
+
+                $('#select5').change(function()
+                {
+                    region = this.value;
+                    document.getElementById('select6').options.length = 1;
+                    //$("#select6").empty();
+                    $("#select6").show();
+                    $("#select2").val('selected');
+                    $("#select3").val('selected');
+                    $("#loading").hide();
+                    $("#period").hide();
+                    getinstance(region);
+                });
+                $('#select6').change(function()
+                {
+                    instance = this.value;
+
+                    $("#select2").val('selected');
+                    $("#select3").val('selected');
+                    $("#loading").hide();
+                    $("#period").hide();
+
+                });
+
+
                 $("#cpu").click(function()
                 {
                     $("#select").val('selected');
@@ -222,7 +279,7 @@
                 {
                     static = this.value;
                     $("#loading").show();
-                    loadgraph(id, static, time, interval);
+                    loadgraph(id, static, time, interval, instance,region);
                 });
             });
         </script>
@@ -237,7 +294,35 @@
                     <div class="container">
                         <ul class="nav">
                             <li class="active"><a href="#">Aws  Service Graphs</a></li>
-                            <li class="span5"><a href="#">      </a></li>
+                            <li class="span3">
+                                <div id="region"  >
+
+                                    <select id="select5"   >
+                                        <option value="selected">select Region-</option>             
+                                        <option value="ap-northeast-1">ap-northeast-1</option>
+                                        <option value="ap-southeast-1">ap-southeast-1</option>
+                                        <option value="ap-southeast-2">ap-southeast-2</option>
+                                        <option value="us-west-2">us-west-2</option>
+                                        <option value="us-west-1">us-west-1</option>
+                                        <option value="eu-west-1">eu-west-1</option>
+                                        <option value="sa-east-1">sa-east-1</option>       
+                                    </select>                 
+
+                                    </h4>
+                                </div>
+                            </li>
+
+                            <li class="span3">
+                                <div id="instances">
+
+                                    <select id="select6"   >
+                                        <option value="selected">select Instance</option>             
+
+                                    </select>                 
+
+                                    </h4>
+                                </div>
+                            </li>
                             <li class="myname">             
                                 <a href="#"><?php echo "<b>" . $_SESSION['name'] . "</b>"; ?></a>                   
                             </li>
@@ -314,6 +399,9 @@
 
         </div>
         <div id="chart_div"></div>
+        <?php
+        echo "&nbsp&nbsp<b>" . $_GET['msg'] . "</b>";
+        ?>
         <div id="loading" style="margin-top: 5%; margin-left: 35%">
             <img src="load.gif" />
         </div>
